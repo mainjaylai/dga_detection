@@ -39,9 +39,6 @@ def tokenize_domain(domain):
     return domain_encoded
 
 
-print(tokenize_domain("12312.12"))
-
-
 # 定义一个自定义数据集类
 class DomainDataset(Dataset):
     def __init__(self, dataframe):
@@ -94,25 +91,58 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs):
     print("模型已保存为 multi_cnn_model.pth")
 
 
-# 加载数据
-train_df, test_df = load_data()
+def predict(model_path, domain):
+    # 加载模型
+    model = MultiCNN(
+        input_length=45,
+        vocab_size=len("$abcdefghijklmnopqrstuvwxyz0123456789-_.") + 1,
+        embedding_dim=128,
+        num_filters=64,
+        kernel_size=3,
+        hidden_size=128,
+        num_classes=8,  # 确保与训练时的类别数一致
+    )
+    model.load_state_dict(torch.load(model_path))
+    model.eval()
 
-# 创建数据集和数据加载器
-train_dataset = DomainDataset(train_df)
-train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    # 处理输入域名
+    domain_encoded = tokenize_domain(domain)
+    input_tensor = torch.tensor(domain_encoded, dtype=torch.long).unsqueeze(
+        0
+    )  # 增加批次维度
 
-# 初始化模型、损失函数和优化器
-model = MultiCNN(
-    input_length=45,
-    vocab_size=len("$abcdefghijklmnopqrstuvwxyz0123456789-_.") + 1,
-    embedding_dim=128,
-    num_filters=64,
-    kernel_size=3,
-    hidden_size=128,
-    num_classes=8,
-)
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+    # 进行预测
+    with torch.no_grad():
+        output = model(input_tensor)
+        predicted_class = torch.argmax(output, dim=1).item()
 
-# 训练模型
-train_model(model, train_loader, criterion, optimizer, num_epochs=10)
+    return predicted_class
+
+
+def train():
+    # 加载数据
+    train_df, test_df = load_data()
+
+    # 创建数据集和数据加载器
+    train_dataset = DomainDataset(train_df)
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+
+    # 初始化模型、损失函数和优化器
+    model = MultiCNN(
+        input_length=45,
+        vocab_size=len("$abcdefghijklmnopqrstuvwxyz0123456789-_.") + 1,
+        embedding_dim=128,
+        num_filters=64,
+        kernel_size=3,
+        hidden_size=128,
+        num_classes=8,
+    )
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    # 训练模型
+    train_model(model, train_loader, criterion, optimizer, num_epochs=10)
+
+
+predicted_label = predict("multi_cnn_model.pth", "aeaoeswaqwuuqugg.org")
+print(f"预测标签: {predicted_label}")
