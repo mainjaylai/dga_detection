@@ -144,5 +144,5 @@ def train():
     train_model(model, train_loader, criterion, optimizer, num_epochs=10)
 
 
-predicted_label = predict("multi_cnn_model.pth", "aeaoeswaqwuuqugg.org")
+predicted_label = predict("multi_cnn_model.pth", "andpoliticalstatesthe.com")
 print(f"预测标签: {predicted_label}")
